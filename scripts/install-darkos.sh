@@ -57,7 +57,8 @@ udevadm trigger || true
 
 # Install compact fonts and tmux if missing
 echo "Ensuring console fonts and tmux are installed..."
-apt-get update -qq && apt-get install -y -qq kbd console-data console-setup fonts-terminus tmux || true
+DEBIAN_FRONTEND=noninteractive apt-get update -qq && \
+DEBIAN_FRONTEND=noninteractive apt-get install -y -qq -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" kbd console-data console-setup fonts-terminus tmux || true
 
 # Create EmulationStation Ports / Tools launcher shortcut if folders exist
 for dir in /roms/ports /roms/tools /roms2/ports /roms2/tools /storage/roms/ports /userdata/roms/ports; do
