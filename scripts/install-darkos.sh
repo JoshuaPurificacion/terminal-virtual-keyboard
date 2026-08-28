@@ -62,10 +62,10 @@ After=multi-user.target
 
 [Service]
 Type=simple
-ExecStart=/opt/cyberdeck/bin/deck-launcher --process emulationstation --cyberdeck /opt/cyberdeck/bin/cyberdeck-kb
+ExecStart=/opt/cyberdeck/bin/deck-launcher --device /dev/input/event4 --process emulationstation --cyberdeck /opt/cyberdeck/bin/cyberdeck-kb
 Restart=always
 RestartSec=3
-StandardInput=tty
+StandardInput=null
 StandardOutput=journal
 StandardError=journal
 

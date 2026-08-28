@@ -140,12 +140,41 @@ fn trigger_cyberdeck_mode(es_proc: &str, cyberdeck_bin: &str) {
         .arg(es_proc)
         .status();
 
-    println!("[deck-launcher] Launching Cyberdeck Mode ({}) in foreground...", cyberdeck_bin);
-    let status = Command::new(cyberdeck_bin)
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .status();
+    let _ = Command::new("chvt").arg("1").status();
+
+    println!("[deck-launcher] Launching Cyberdeck Mode ({}) on /dev/tty1...", cyberdeck_bin);
+
+    // Open /dev/tty1 for direct screen and keyboard I/O
+    let tty_result = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open("/dev/tty1");
+
+    let status = match tty_result {
+        Ok(tty_file) => {
+            if let (Ok(tty_in), Ok(tty_out)) = (tty_file.try_clone(), tty_file.try_clone()) {
+                Command::new(cyberdeck_bin)
+                    .env("TERM", "linux")
+                    .stdin(Stdio::from(tty_in))
+                    .stdout(Stdio::from(tty_out))
+                    .stderr(Stdio::from(tty_file))
+                    .status()
+            } else {
+                Command::new(cyberdeck_bin)
+                    .env("TERM", "linux")
+                    .status()
+            }
+        }
+        Err(e) => {
+            eprintln!("[deck-launcher] Could not open /dev/tty1 ({}). Falling back to standard execution.", e);
+            Command::new(cyberdeck_bin)
+                .env("TERM", "xterm-256color")
+                .stdin(Stdio::inherit())
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .status()
+        }
+    };
 
     match status {
         Ok(s) => println!("[deck-launcher] Cyberdeck session ended with status: {}", s),
