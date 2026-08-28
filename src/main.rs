@@ -131,6 +131,10 @@ fn process_input_event(
 
         InputEvent::Select => {
             if let Some(bytes) = kb.press_select() {
+                if bytes == vec![0x11] {
+                    *running = false;
+                    return;
+                }
                 let _ = pty.write(&bytes);
             }
         }

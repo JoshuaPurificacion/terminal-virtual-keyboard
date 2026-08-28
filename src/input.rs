@@ -173,6 +173,8 @@ impl PcKeyboardInput {
 pub struct EvdevGamepadInput {
     pub device: Option<evdev::Device>,
     last_ry_tick: std::time::Instant,
+    select_held: bool,
+    start_held: bool,
 }
 
 impl EvdevGamepadInput {
@@ -196,6 +198,8 @@ impl EvdevGamepadInput {
         Self {
             device,
             last_ry_tick: std::time::Instant::now(),
+            select_held: false,
+            start_held: false,
         }
     }
 
@@ -221,8 +225,22 @@ impl EvdevGamepadInput {
             for ev in events {
                 match ev.kind() {
                     evdev::InputEventKind::Key(key) => {
+                        let is_press = ev.value() == 1;
+
+                        if key == evdev::Key::BTN_SELECT {
+                            self.select_held = is_press;
+                            if is_press && self.start_held {
+                                return Some(InputEvent::Quit);
+                            }
+                        } else if key == evdev::Key::BTN_START {
+                            self.start_held = is_press;
+                            if is_press && self.select_held {
+                                return Some(InputEvent::Quit);
+                            }
+                        }
+
                         // Only process key press (value == 1)
-                        if ev.value() == 1 {
+                        if is_press {
                             if let Some(mapped) = Self::map_evdev_key(key) {
                                 return Some(mapped);
                             }
