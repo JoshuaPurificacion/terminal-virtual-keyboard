@@ -52,6 +52,12 @@ fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 5. Spawn PTY session with real shell (bash)
     let mut pty = PtySession::spawn(cfg.shell.clone(), shell_rows.max(1), cols.max(1))?;
 
+    // Render initial frame immediately on startup
+    let initial_mode = input_mapper.mode.name();
+    pty.with_screen(|screen| {
+        let _ = renderer.render_frame(screen, &kb, initial_mode, cols, rows);
+    });
+
     // 6. Main Event Loop
     let mut running = true;
     while running {

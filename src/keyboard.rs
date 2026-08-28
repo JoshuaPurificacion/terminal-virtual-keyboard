@@ -105,7 +105,7 @@ impl KeyboardState {
 
     fn base_layout(&self) -> Vec<Vec<KeyDef>> {
         vec![
-            // Row 0: Numbers & quick punctuation
+            // Row 0: Numbers (10 keys)
             vec![
                 KeyDef::new_char(if self.shift_active { '!' } else { '1' }),
                 KeyDef::new_char(if self.shift_active { '@' } else { '2' }),
@@ -117,10 +117,8 @@ impl KeyboardState {
                 KeyDef::new_char(if self.shift_active { '*' } else { '8' }),
                 KeyDef::new_char(if self.shift_active { '(' } else { '9' }),
                 KeyDef::new_char(if self.shift_active { ')' } else { '0' }),
-                KeyDef::new_char(if self.shift_active { '_' } else { '-' }),
-                KeyDef::new_char(if self.shift_active { '+' } else { '=' }),
             ],
-            // Row 1: QWERTY top row
+            // Row 1: QWERTY top row (10 keys)
             vec![
                 self.char_key('q', 'Q'),
                 self.char_key('w', 'W'),
@@ -132,10 +130,8 @@ impl KeyboardState {
                 self.char_key('i', 'I'),
                 self.char_key('o', 'O'),
                 self.char_key('p', 'P'),
-                KeyDef::new_char(if self.shift_active { '{' } else { '[' }),
-                KeyDef::new_char(if self.shift_active { '}' } else { ']' }),
             ],
-            // Row 2: Home row
+            // Row 2: Home row (10 keys)
             vec![
                 self.char_key('a', 'A'),
                 self.char_key('s', 'S'),
@@ -147,10 +143,8 @@ impl KeyboardState {
                 self.char_key('k', 'K'),
                 self.char_key('l', 'L'),
                 KeyDef::new_char(if self.shift_active { ':' } else { ';' }),
-                KeyDef::new_char(if self.shift_active { '"' } else { '\'' }),
-                KeyDef::new_char(if self.shift_active { '|' } else { '\\' }),
             ],
-            // Row 3: Bottom row
+            // Row 3: Bottom row (10 keys)
             vec![
                 self.char_key('z', 'Z'),
                 self.char_key('x', 'X'),
@@ -162,8 +156,6 @@ impl KeyboardState {
                 KeyDef::new_char(if self.shift_active { '<' } else { ',' }),
                 KeyDef::new_char(if self.shift_active { '>' } else { '.' }),
                 KeyDef::new_char(if self.shift_active { '?' } else { '/' }),
-                KeyDef::new_char(if self.shift_active { '~' } else { '`' }),
-                KeyDef::new_char(if self.shift_active { '+' } else { '_' }),
             ],
         ]
     }
@@ -176,7 +168,7 @@ impl KeyboardState {
                 KeyDef::new_action("PgUp", KeyAction::PageUp),
                 KeyDef::new_action("Home", KeyAction::Home),
                 KeyDef::new_char('+'), KeyDef::new_char('-'), KeyDef::new_char('*'),
-                KeyDef::new_char('/'), KeyDef::new_char('='), KeyDef::new_char('%'),
+                KeyDef::new_char('/'),
             ],
             vec![
                 KeyDef::new_char('4'), KeyDef::new_char('5'), KeyDef::new_char('6'),
@@ -184,21 +176,20 @@ impl KeyboardState {
                 KeyDef::new_action("PgDn", KeyAction::PageDown),
                 KeyDef::new_action("End", KeyAction::End),
                 KeyDef::new_char('('), KeyDef::new_char(')'), KeyDef::new_char('{'),
-                KeyDef::new_char('}'), KeyDef::new_char('['), KeyDef::new_char(']'),
+                KeyDef::new_char('}'),
             ],
             vec![
                 KeyDef::new_char('7'), KeyDef::new_char('8'), KeyDef::new_char('9'),
                 KeyDef::new_action(" ◀ ", KeyAction::Arrow(Direction::Left)),
                 KeyDef::new_action(" ▶ ", KeyAction::Arrow(Direction::Right)),
                 KeyDef::new_char('_'), KeyDef::new_char('<'), KeyDef::new_char('>'),
-                KeyDef::new_char('^'), KeyDef::new_char('&'), KeyDef::new_char('|'),
-                KeyDef::new_char('~'),
+                KeyDef::new_char('='), KeyDef::new_char('%'),
             ],
             vec![
                 KeyDef::new_char('0'), KeyDef::new_char('.'), KeyDef::new_char(','),
                 KeyDef::new_char('!'), KeyDef::new_char('@'), KeyDef::new_char('#'),
-                KeyDef::new_char('$'), KeyDef::new_char('\\'), KeyDef::new_char(':'),
-                KeyDef::new_char(';'), KeyDef::new_char('"'), KeyDef::new_char('\''),
+                KeyDef::new_char('$'), KeyDef::new_char('\\'), KeyDef::new_char('\''),
+                KeyDef::new_char('~'),
             ],
         ]
     }
@@ -209,25 +200,25 @@ impl KeyboardState {
                 KeyDef::new_char('!'), KeyDef::new_char('@'), KeyDef::new_char('#'),
                 KeyDef::new_char('$'), KeyDef::new_char('%'), KeyDef::new_char('^'),
                 KeyDef::new_char('&'), KeyDef::new_char('*'), KeyDef::new_char('('),
-                KeyDef::new_char(')'), KeyDef::new_char('_'), KeyDef::new_char('+'),
+                KeyDef::new_char(')'),
             ],
             vec![
                 KeyDef::new_char('~'), KeyDef::new_char('`'), KeyDef::new_char('{'),
                 KeyDef::new_char('}'), KeyDef::new_char('['), KeyDef::new_char(']'),
                 KeyDef::new_char('|'), KeyDef::new_char('\\'), KeyDef::new_char(':'),
-                KeyDef::new_char(';'), KeyDef::new_char('"'), KeyDef::new_char('\''),
+                KeyDef::new_char(';'),
             ],
             vec![
                 KeyDef::new_char('<'), KeyDef::new_char('>'), KeyDef::new_char('?'),
                 KeyDef::new_char('/'), KeyDef::new_char('='), KeyDef::new_char('-'),
-                KeyDef::new_char('+'), KeyDef::new_char('*'), KeyDef::new_char('!'),
-                KeyDef::new_char('@'), KeyDef::new_char('#'), KeyDef::new_char('$'),
+                KeyDef::new_char('+'), KeyDef::new_char('*'), KeyDef::new_char('"'),
+                KeyDef::new_char('\''),
             ],
             vec![
-                KeyDef::new_char('0'), KeyDef::new_char('1'), KeyDef::new_char('2'),
-                KeyDef::new_char('3'), KeyDef::new_char('4'), KeyDef::new_char('5'),
-                KeyDef::new_char('6'), KeyDef::new_char('7'), KeyDef::new_char('8'),
-                KeyDef::new_char('9'), KeyDef::new_char(','), KeyDef::new_char('.'),
+                KeyDef::new_char('_'), KeyDef::new_char('\\'), KeyDef::new_char('|'),
+                KeyDef::new_char('~'), KeyDef::new_char('^'), KeyDef::new_char('&'),
+                KeyDef::new_char('$'), KeyDef::new_char('#'), KeyDef::new_char('@'),
+                KeyDef::new_char('!'),
             ],
         ]
     }

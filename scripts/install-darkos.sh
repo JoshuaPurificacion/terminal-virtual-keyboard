@@ -41,17 +41,23 @@ ln -sf "$BIN_DIR/cyberdeck-kb" /usr/local/bin/cyberdeck-kb
 ln -sf "$BIN_DIR/deck-launcher" /usr/local/bin/deck-launcher
 
 # Grant input device permissions for non-root users (like 'ark')
-echo "Setting up input permissions for controller..."
-usermod -a -G input ark || true
+echo "Setting up input & console permissions..."
+usermod -a -G input,tty,video ark || true
 if [ -n "$SUDO_USER" ]; then
-    usermod -a -G input "$SUDO_USER" || true
+    usermod -a -G input,tty,video "$SUDO_USER" || true
 fi
 chmod 666 /dev/input/event* || true
+chmod 666 /dev/tty1 || true
 cat << 'UDEV' > /etc/udev/rules.d/99-gamepad-input.rules
 KERNEL=="event*", SUBSYSTEM=="input", MODE="0666"
+KERNEL=="tty1", MODE="0666"
 UDEV
 udevadm control --reload-rules || true
 udevadm trigger || true
+
+# Install compact fonts and tmux if missing
+echo "Ensuring console fonts and tmux are installed..."
+apt-get update -qq && apt-get install -y -qq kbd console-data console-setup fonts-terminus tmux || true
 
 # Create EmulationStation Ports / Tools launcher shortcut if folders exist
 for dir in /roms/ports /roms/tools /roms2/ports /roms2/tools /storage/roms/ports /userdata/roms/ports; do
@@ -59,24 +65,30 @@ for dir in /roms/ports /roms/tools /roms2/ports /roms2/tools /storage/roms/ports
         echo "Creating EmulationStation shortcut in $dir/Cyberdeck.sh..."
         cat << 'PORT' > "$dir/Cyberdeck.sh"
 #!/bin/bash
-# Set crisp 8x16 console font for optimal 80x30 resolution on 640x480 screen
-setfont /usr/share/consolefonts/Uni3-Terminus16.psf.gz 2>/dev/null || \
-setfont /usr/share/consolefonts/Uni3-TerminusBold14.psf.gz 2>/dev/null || \
-setfont /usr/share/consolefonts/default8x16.psf.gz 2>/dev/null || \
-setfont /usr/share/consolefonts/Lat15-Terminus16.psf.gz 2>/dev/null || true
+# 1. Switch VT and ensure TTY1 is accessible
+sudo chmod 666 /dev/tty1 2>/dev/null || true
+sudo chvt 1 2>/dev/null || true
 
+# 2. Set compact font on /dev/tty1
+sudo setfont -C /dev/tty1 /usr/share/consolefonts/Uni3-Terminus12.psf.gz 2>/dev/null || \
+sudo setfont -C /dev/tty1 /usr/share/consolefonts/Uni3-TerminusBold14.psf.gz 2>/dev/null || \
+sudo setfont -C /dev/tty1 /usr/share/consolefonts/Uni3-Terminus16.psf.gz 2>/dev/null || \
+sudo setfont -C /dev/tty1 /usr/share/consolefonts/Uni3-Terminus8x8.psf.gz 2>/dev/null || \
+sudo setfont -C /dev/tty1 /usr/share/consolefonts/default8x16.psf.gz 2>/dev/null || true
+
+# 3. Direct all I/O to the physical framebuffer console
+exec > /dev/tty1 2>&1 < /dev/tty1
+
+# 4. Clear and launch Cyberdeck
+clear
+printf "\033[?25h"
 /opt/cyberdeck/bin/cyberdeck-kb
 PORT
         chmod +x "$dir/Cyberdeck.sh"
     fi
 done
 
-echo "[3/4] Ensuring tmux is installed & writing configuration ($CONFIG_DIR/config.toml)..."
-if ! command -v tmux &> /dev/null; then
-    echo "Installing tmux for session persistence & pair programming..."
-    apt-get update -qq && apt-get install -y -qq tmux || true
-fi
-
+echo "[3/4] Writing configuration ($CONFIG_DIR/config.toml)..."
 cat << 'CFG' > "$CONFIG_DIR/config.toml"
 # Cyberdeck-KB & DarkOS Configuration
 # Default to tmux session 'main' for persistence & pairing over SSH

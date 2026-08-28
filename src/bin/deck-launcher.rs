@@ -140,8 +140,10 @@ fn trigger_cyberdeck_mode(es_proc: &str, cyberdeck_bin: &str) {
         .arg(es_proc)
         .status();
 
-    let _ = Command::new("setfont")
-        .arg("/usr/share/consolefonts/Uni3-Terminus16.psf.gz")
+    // Apply compact console font
+    let _ = Command::new("sh")
+        .arg("-c")
+        .arg("setfont -C /dev/tty1 /usr/share/consolefonts/Uni3-Terminus12.psf.gz 2>/dev/null || setfont -C /dev/tty1 /usr/share/consolefonts/Uni3-TerminusBold14.psf.gz 2>/dev/null || setfont -C /dev/tty1 /usr/share/consolefonts/Uni3-Terminus16.psf.gz 2>/dev/null || true")
         .status();
 
     println!("[deck-launcher] Launching Cyberdeck Mode ({}) on /dev/tty1...", cyberdeck_bin);

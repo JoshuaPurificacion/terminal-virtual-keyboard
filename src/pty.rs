@@ -25,15 +25,12 @@ impl PtySession {
         })?;
 
         let shell_str = shell_cmd.unwrap_or_else(|| {
-            std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string())
+            std::env::var("SHELL").unwrap_or_else(|_| "tmux new-session -A -s main || /bin/bash".to_string())
         });
 
-        let mut parts = shell_str.split_whitespace();
-        let program = parts.next().unwrap_or("/bin/bash");
-        let mut cmd = CommandBuilder::new(program);
-        for arg in parts {
-            cmd.arg(arg);
-        }
+        let mut cmd = CommandBuilder::new("/bin/sh");
+        cmd.arg("-c");
+        cmd.arg(&shell_str);
         cmd.env("TERM", "xterm-256color");
 
         let child = pair.slave.spawn_command(cmd)?;
