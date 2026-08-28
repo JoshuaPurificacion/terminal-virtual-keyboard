@@ -130,18 +130,46 @@ fn process_input_event(
     running: &mut bool,
 ) {
     match event {
-        InputEvent::Up => kb.move_cursor(Direction::Up),
-        InputEvent::Down => kb.move_cursor(Direction::Down),
-        InputEvent::Left => kb.move_cursor(Direction::Left),
-        InputEvent::Right => kb.move_cursor(Direction::Right),
+        InputEvent::Up => {
+            if kb.visible {
+                kb.move_cursor(Direction::Up);
+            } else {
+                let _ = pty.write(b"\x1b[A"); // Direct Up Arrow
+            }
+        }
+        InputEvent::Down => {
+            if kb.visible {
+                kb.move_cursor(Direction::Down);
+            } else {
+                let _ = pty.write(b"\x1b[B"); // Direct Down Arrow
+            }
+        }
+        InputEvent::Left => {
+            if kb.visible {
+                kb.move_cursor(Direction::Left);
+            } else {
+                let _ = pty.write(b"\x1b[D"); // Direct Left Arrow
+            }
+        }
+        InputEvent::Right => {
+            if kb.visible {
+                kb.move_cursor(Direction::Right);
+            } else {
+                let _ = pty.write(b"\x1b[C"); // Direct Right Arrow
+            }
+        }
 
         InputEvent::Select => {
-            if let Some(bytes) = kb.press_select() {
-                if bytes == vec![0x11] {
-                    *running = false;
-                    return;
+            if kb.visible {
+                if let Some(bytes) = kb.press_select() {
+                    if bytes == vec![0x11] {
+                        *running = false;
+                        return;
+                    }
+                    let _ = pty.write(&bytes);
                 }
-                let _ = pty.write(&bytes);
+            } else {
+                let _ = pty.write(b"\r"); // Direct Enter / OK in dialogs
             }
         }
         InputEvent::Back => {
@@ -149,10 +177,28 @@ fn process_input_event(
                 let _ = pty.write(&bytes);
             }
         }
-        InputEvent::ShiftKey => kb.toggle_shift(),
+        InputEvent::ShiftKey => {
+            if kb.visible {
+                kb.toggle_shift();
+            } else {
+                let _ = pty.write(b" "); // Space / Toggle checkbox in dialogs
+            }
+        }
         InputEvent::CtrlKey => kb.toggle_ctrl(),
-        InputEvent::L1 => kb.toggle_l1(),
-        InputEvent::R1 => kb.toggle_r1(),
+        InputEvent::L1 => {
+            if kb.visible {
+                kb.toggle_l1();
+            } else {
+                kb.toggle_ctrl();
+            }
+        }
+        InputEvent::R1 => {
+            if kb.visible {
+                kb.toggle_r1();
+            } else {
+                let _ = pty.write(b"\t"); // Tab in dialogs
+            }
+        }
         InputEvent::Start => {
             if let Some(bytes) = kb.process_action(KeyAction::Enter) {
                 let _ = pty.write(&bytes);
