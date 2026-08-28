@@ -140,8 +140,6 @@ fn trigger_cyberdeck_mode(es_proc: &str, cyberdeck_bin: &str) {
         .arg(es_proc)
         .status();
 
-    let _ = Command::new("chvt").arg("1").status();
-
     println!("[deck-launcher] Launching Cyberdeck Mode ({}) on /dev/tty1...", cyberdeck_bin);
 
     // Open /dev/tty1 for direct screen and keyboard I/O

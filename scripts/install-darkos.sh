@@ -40,6 +40,18 @@ chmod +x "$BIN_DIR/deck-launcher"
 ln -sf "$BIN_DIR/cyberdeck-kb" /usr/local/bin/cyberdeck-kb
 ln -sf "$BIN_DIR/deck-launcher" /usr/local/bin/deck-launcher
 
+# Create EmulationStation Ports / Tools launcher shortcut if folders exist
+for dir in /roms/ports /roms/tools /roms2/ports /roms2/tools /storage/roms/ports /userdata/roms/ports; do
+    if [ -d "$dir" ]; then
+        echo "Creating EmulationStation shortcut in $dir/Cyberdeck.sh..."
+        cat << 'PORT' > "$dir/Cyberdeck.sh"
+#!/bin/bash
+/opt/cyberdeck/bin/cyberdeck-kb
+PORT
+        chmod +x "$dir/Cyberdeck.sh"
+    fi
+done
+
 echo "[3/4] Writing default configuration ($CONFIG_DIR/config.toml)..."
 if [ ! -f "$CONFIG_DIR/config.toml" ]; then
     cat << 'CFG' > "$CONFIG_DIR/config.toml"
