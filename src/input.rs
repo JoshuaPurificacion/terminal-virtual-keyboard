@@ -153,17 +153,15 @@ impl PcKeyboardInput {
             KeyCode::Char('u') | KeyCode::Char('U') => Some(InputEvent::ShiftKey),
             KeyCode::Char('x') | KeyCode::Char('X') => Some(InputEvent::ShiftKey),
 
-            // Gamepad Y / Ctrl
-            KeyCode::F(2) => Some(InputEvent::CtrlKey),
-            KeyCode::Char('i') | KeyCode::Char('I') => Some(InputEvent::CtrlKey),
-            KeyCode::Char('y') | KeyCode::Char('Y') => Some(InputEvent::CtrlKey),
+            // Gamepad Y / Tab
+            KeyCode::Char('i') | KeyCode::Char('I') | KeyCode::Char('y') | KeyCode::Char('Y') | KeyCode::Tab => Some(InputEvent::Passthrough(vec![b'\t'])),
 
-            // Bumpers / Layers
-            KeyCode::F(3) | KeyCode::PageUp | KeyCode::Char('[') => Some(InputEvent::L1),
-            KeyCode::F(4) | KeyCode::PageDown | KeyCode::Char(']') => Some(InputEvent::R1),
+            // Shoulder / Bumper mappings
+            KeyCode::F(2) | KeyCode::F(3) | KeyCode::PageUp | KeyCode::Char('[') => Some(InputEvent::CtrlKey), // L1 -> Ctrl
+            KeyCode::F(4) | KeyCode::PageDown | KeyCode::Char(']') => Some(InputEvent::R1),                     // R1 -> Cycle Layer
 
             // Start & Select buttons
-            KeyCode::Tab | KeyCode::F(5) => Some(InputEvent::Start),
+            KeyCode::F(5) => Some(InputEvent::Start),
             KeyCode::F(6) => Some(InputEvent::ToggleKeyboard),
             KeyCode::Esc | KeyCode::F(12) => Some(InputEvent::Select2),
 
@@ -258,25 +256,25 @@ impl EvdevGamepadInput {
             evdev::Key::KEY_RIGHT | evdev::Key::BTN_DPAD_RIGHT => Some(InputEvent::Right),
 
             // RG353M Face Buttons (Codes 304, 305, 307, 308)
-            evdev::Key::BTN_SOUTH | evdev::Key::BTN_0 | evdev::Key::KEY_ENTER => Some(InputEvent::Select), // A
-            evdev::Key::BTN_EAST | evdev::Key::BTN_1 | evdev::Key::KEY_BACKSPACE => Some(InputEvent::Back), // B
-            evdev::Key::BTN_NORTH | evdev::Key::BTN_2 | evdev::Key::KEY_F1 => Some(InputEvent::ShiftKey),   // X
-            evdev::Key::BTN_WEST | evdev::Key::BTN_3 | evdev::Key::KEY_F2 => Some(InputEvent::CtrlKey),    // Y
+            evdev::Key::BTN_SOUTH | evdev::Key::BTN_0 | evdev::Key::KEY_ENTER => Some(InputEvent::Select), // A -> Type Key
+            evdev::Key::BTN_EAST | evdev::Key::BTN_1 | evdev::Key::KEY_BACKSPACE => Some(InputEvent::Back), // B -> Backspace
+            evdev::Key::BTN_NORTH | evdev::Key::BTN_2 | evdev::Key::KEY_F1 => Some(InputEvent::ShiftKey),   // X -> Shift
+            evdev::Key::BTN_WEST | evdev::Key::BTN_3 => Some(InputEvent::Passthrough(vec![b'\t'])),         // Y -> Tab
 
             // RG353M Shoulders & Triggers (Codes 310, 311, 312, 313)
-            evdev::Key::BTN_TL | evdev::Key::KEY_F3 | evdev::Key::KEY_PAGEUP => Some(InputEvent::L1),       // L1 -> Symbols
-            evdev::Key::BTN_TR | evdev::Key::KEY_F4 | evdev::Key::KEY_PAGEDOWN => Some(InputEvent::R1),     // R1 -> Numbers
-            evdev::Key::BTN_TL2 => Some(InputEvent::Passthrough(vec![b' '])),                               // L2 -> Quick Space
-            evdev::Key::BTN_TR2 => Some(InputEvent::Start),                                                  // R2 -> Quick Enter
+            evdev::Key::BTN_TL | evdev::Key::KEY_F2 => Some(InputEvent::CtrlKey),                           // L1 -> Ctrl
+            evdev::Key::BTN_TR | evdev::Key::KEY_F4 | evdev::Key::KEY_PAGEDOWN => Some(InputEvent::R1),     // R1 -> Cycle Layer
+            evdev::Key::BTN_TL2 => Some(InputEvent::Passthrough(vec![b' '])),                               // L2 -> Space
+            evdev::Key::BTN_TR2 => Some(InputEvent::Start),                                                  // R2 -> Enter
 
             // RG353M System Buttons (Codes 314, 315, 316)
-            evdev::Key::BTN_START | evdev::Key::KEY_TAB => Some(InputEvent::Start),                         // START
+            evdev::Key::BTN_START | evdev::Key::KEY_TAB => Some(InputEvent::Start),                         // START -> Enter
             evdev::Key::BTN_SELECT | evdev::Key::KEY_ESC => Some(InputEvent::Select2),                      // SELECT -> Escape
             evdev::Key::BTN_MODE | evdev::Key::KEY_HOMEPAGE | evdev::Key::KEY_F => Some(InputEvent::ToggleKeyboard), // F Button (316) -> Show/Hide KB
 
             // Thumbstick clicks (Codes 317, 318)
             evdev::Key::BTN_THUMBL => Some(InputEvent::ToggleKeyboard), // L3 -> Show/Hide KB
-            evdev::Key::BTN_THUMBR => Some(InputEvent::L1),             // R3 -> Symbols
+            evdev::Key::BTN_THUMBR => Some(InputEvent::R1),             // R3 -> Cycle Layer
 
             _ => None,
         }
@@ -332,9 +330,11 @@ mod tests {
         assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_SOUTH), Some(InputEvent::Select));
         assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_EAST), Some(InputEvent::Back));
         assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_NORTH), Some(InputEvent::ShiftKey));
-        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_WEST), Some(InputEvent::CtrlKey));
-        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_TL), Some(InputEvent::L1));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_WEST), Some(InputEvent::Passthrough(vec![b'\t'])));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_TL), Some(InputEvent::CtrlKey));
         assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_TR), Some(InputEvent::R1));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_TL2), Some(InputEvent::Passthrough(vec![b' '])));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_TR2), Some(InputEvent::Start));
         assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_START), Some(InputEvent::Start));
         assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_SELECT), Some(InputEvent::Select2));
         assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_MODE), Some(InputEvent::ToggleKeyboard));

@@ -152,7 +152,6 @@ impl KeyboardState {
             ],
             // Row 3: Bottom row
             vec![
-                KeyDef::new_action("ESC", KeyAction::Escape),
                 self.char_key('z', 'Z'),
                 self.char_key('x', 'X'),
                 self.char_key('c', 'C'),
@@ -163,17 +162,8 @@ impl KeyboardState {
                 KeyDef::new_char(if self.shift_active { '<' } else { ',' }),
                 KeyDef::new_char(if self.shift_active { '>' } else { '.' }),
                 KeyDef::new_char(if self.shift_active { '?' } else { '/' }),
-                KeyDef::new_action("BKSP", KeyAction::Backspace),
-            ],
-            // Row 4: Controls & Space
-            vec![
-                KeyDef::new_action(if self.ctrl_active { "[CTRL]" } else { "Ctrl" }, KeyAction::ToggleCtrl),
-                KeyDef::new_action(if self.shift_active { "[SHFT]" } else { "Shift" }, KeyAction::ToggleShift),
-                KeyDef::new_action("TAB", KeyAction::Tab),
-                KeyDef::new_action("SYMS", KeyAction::SetLayer(Layer::Symbols)),
-                KeyDef::new_action("   SPACE   ", KeyAction::Space),
-                KeyDef::new_action("NUMS", KeyAction::SetLayer(Layer::Numbers)),
-                KeyDef::new_action("ENTER", KeyAction::Enter),
+                KeyDef::new_char(if self.shift_active { '~' } else { '`' }),
+                KeyDef::new_char(if self.shift_active { '+' } else { '_' }),
             ],
         ]
     }
@@ -186,32 +176,29 @@ impl KeyboardState {
                 KeyDef::new_action("PgUp", KeyAction::PageUp),
                 KeyDef::new_action("Home", KeyAction::Home),
                 KeyDef::new_char('+'), KeyDef::new_char('-'), KeyDef::new_char('*'),
+                KeyDef::new_char('/'), KeyDef::new_char('='), KeyDef::new_char('%'),
             ],
             vec![
                 KeyDef::new_char('4'), KeyDef::new_char('5'), KeyDef::new_char('6'),
                 KeyDef::new_action(" ▼ ", KeyAction::Arrow(Direction::Down)),
                 KeyDef::new_action("PgDn", KeyAction::PageDown),
                 KeyDef::new_action("End", KeyAction::End),
-                KeyDef::new_char('/'), KeyDef::new_char('='), KeyDef::new_char('%'),
+                KeyDef::new_char('('), KeyDef::new_char(')'), KeyDef::new_char('{'),
+                KeyDef::new_char('}'), KeyDef::new_char('['), KeyDef::new_char(']'),
             ],
             vec![
                 KeyDef::new_char('7'), KeyDef::new_char('8'), KeyDef::new_char('9'),
                 KeyDef::new_action(" ◀ ", KeyAction::Arrow(Direction::Left)),
                 KeyDef::new_action(" ▶ ", KeyAction::Arrow(Direction::Right)),
-                KeyDef::new_char('('), KeyDef::new_char(')'), KeyDef::new_char('^'),
+                KeyDef::new_char('_'), KeyDef::new_char('<'), KeyDef::new_char('>'),
+                KeyDef::new_char('^'), KeyDef::new_char('&'), KeyDef::new_char('|'),
+                KeyDef::new_char('~'),
             ],
             vec![
                 KeyDef::new_char('0'), KeyDef::new_char('.'), KeyDef::new_char(','),
-                KeyDef::new_action("BKSP", KeyAction::Backspace),
-                KeyDef::new_action("TAB", KeyAction::Tab),
-                KeyDef::new_action("ENTER", KeyAction::Enter),
-            ],
-            vec![
-                KeyDef::new_action("BASE", KeyAction::SetLayer(Layer::Base)),
-                KeyDef::new_action("SYMS", KeyAction::SetLayer(Layer::Symbols)),
-                KeyDef::new_action("   SPACE   ", KeyAction::Space),
-                KeyDef::new_action(if self.ctrl_active { "[CTRL]" } else { "Ctrl" }, KeyAction::ToggleCtrl),
-                KeyDef::new_action("ESC", KeyAction::Escape),
+                KeyDef::new_char('!'), KeyDef::new_char('@'), KeyDef::new_char('#'),
+                KeyDef::new_char('$'), KeyDef::new_char('\\'), KeyDef::new_char(':'),
+                KeyDef::new_char(';'), KeyDef::new_char('"'), KeyDef::new_char('\''),
             ],
         ]
     }
@@ -221,30 +208,26 @@ impl KeyboardState {
             vec![
                 KeyDef::new_char('!'), KeyDef::new_char('@'), KeyDef::new_char('#'),
                 KeyDef::new_char('$'), KeyDef::new_char('%'), KeyDef::new_char('^'),
-                KeyDef::new_char('&'), KeyDef::new_char('*'),
+                KeyDef::new_char('&'), KeyDef::new_char('*'), KeyDef::new_char('('),
+                KeyDef::new_char(')'), KeyDef::new_char('_'), KeyDef::new_char('+'),
             ],
             vec![
-                KeyDef::new_char('~'), KeyDef::new_char('`'), KeyDef::new_char('|'),
-                KeyDef::new_char('\\'), KeyDef::new_char('/'), KeyDef::new_char('_'),
-                KeyDef::new_char('-'), KeyDef::new_char('+'),
-            ],
-            vec![
-                KeyDef::new_char('('), KeyDef::new_char(')'), KeyDef::new_char('{'),
+                KeyDef::new_char('~'), KeyDef::new_char('`'), KeyDef::new_char('{'),
                 KeyDef::new_char('}'), KeyDef::new_char('['), KeyDef::new_char(']'),
-                KeyDef::new_char('<'), KeyDef::new_char('>'),
+                KeyDef::new_char('|'), KeyDef::new_char('\\'), KeyDef::new_char(':'),
+                KeyDef::new_char(';'), KeyDef::new_char('"'), KeyDef::new_char('\''),
             ],
             vec![
-                KeyDef::new_char(';'), KeyDef::new_char(':'), KeyDef::new_char('\''),
-                KeyDef::new_char('"'), KeyDef::new_char('?'), KeyDef::new_char('='),
-                KeyDef::new_action("BKSP", KeyAction::Backspace),
-                KeyDef::new_action("TAB", KeyAction::Tab),
+                KeyDef::new_char('<'), KeyDef::new_char('>'), KeyDef::new_char('?'),
+                KeyDef::new_char('/'), KeyDef::new_char('='), KeyDef::new_char('-'),
+                KeyDef::new_char('+'), KeyDef::new_char('*'), KeyDef::new_char('!'),
+                KeyDef::new_char('@'), KeyDef::new_char('#'), KeyDef::new_char('$'),
             ],
             vec![
-                KeyDef::new_action("BASE", KeyAction::SetLayer(Layer::Base)),
-                KeyDef::new_action("NUMS", KeyAction::SetLayer(Layer::Numbers)),
-                KeyDef::new_action("   SPACE   ", KeyAction::Space),
-                KeyDef::new_action(if self.ctrl_active { "[CTRL]" } else { "Ctrl" }, KeyAction::ToggleCtrl),
-                KeyDef::new_action("ENTER", KeyAction::Enter),
+                KeyDef::new_char('0'), KeyDef::new_char('1'), KeyDef::new_char('2'),
+                KeyDef::new_char('3'), KeyDef::new_char('4'), KeyDef::new_char('5'),
+                KeyDef::new_char('6'), KeyDef::new_char('7'), KeyDef::new_char('8'),
+                KeyDef::new_char('9'), KeyDef::new_char(','), KeyDef::new_char('.'),
             ],
         ]
     }
@@ -330,7 +313,14 @@ impl KeyboardState {
     }
 
     pub fn toggle_r1(&mut self) {
-        self.switch_to_layer(Layer::Numbers);
+        self.active_layer = match self.active_layer {
+            Layer::Base => Layer::Numbers,
+            Layer::Numbers => Layer::Symbols,
+            Layer::Symbols => Layer::Base,
+        };
+        self.cursor_row = 0;
+        self.cursor_col = 0;
+        self.last_output_desc = format!("Layer: {}", self.active_layer.name());
     }
 
     pub fn selected_key(&self) -> Option<KeyDef> {
@@ -530,7 +520,7 @@ mod tests {
     fn test_sticky_ctrl_modifiers() {
         let mut kb = KeyboardState::new();
         kb.cursor_row = 3;
-        kb.cursor_col = 3; // 'c'
+        kb.cursor_col = 2; // 'c' ('z'=0, 'x'=1, 'c'=2)
 
         // Toggle Ctrl
         kb.toggle_ctrl();
@@ -568,15 +558,19 @@ mod tests {
         let mut kb = KeyboardState::new();
         assert_eq!(kb.active_layer, Layer::Base);
 
-        // Switch to Numbers (R1)
+        // Cycle to Numbers (R1)
         kb.toggle_r1();
         assert_eq!(kb.active_layer, Layer::Numbers);
 
-        // Toggle back to Base
+        // Cycle to Symbols (R1)
+        kb.toggle_r1();
+        assert_eq!(kb.active_layer, Layer::Symbols);
+
+        // Cycle back to Base (R1)
         kb.toggle_r1();
         assert_eq!(kb.active_layer, Layer::Base);
 
-        // Switch to Symbols (L1)
+        // Switch to Symbols directly (L1)
         kb.toggle_l1();
         assert_eq!(kb.active_layer, Layer::Symbols);
     }

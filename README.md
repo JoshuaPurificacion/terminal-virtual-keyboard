@@ -19,30 +19,23 @@ A PTY-native virtual keyboard for the RG353M cyberdeck, prototyped on Linux and 
 
 ---
 
-## Control Mapping Reference
+## Streamlined RG353M Control Scheme
 
-### Input Modes
-- **DIRECT / HYBRID (Default)**: Type normally on any physical keyboard directly into the CLI shell, use `Arrow keys` to move cursor on the virtual keyboard, or tap/click directly on keys like an Android touch keyboard.
-- **GAMEPAD ONLY**: Full RG353M gamepad key emulation (`J`/`Z` for A, `K` for B, `U`/`X` for X, etc.).
-- **Toggle Mode**: Press `F9` or `Insert`.
-
-### PC Testing Controls & RG353M Mapping
-
-| Gamepad / Input | PC Keyboard Equivalent | Action |
+| Hardware Button | Linux Code | Action |
 |---|---|---|
-| **Touch / Mouse Tap** | Mouse Click / Touchscreen | Directly type/trigger tapped key (Android-style) |
-| **Physical Typing** | Direct keyboard keys | Types directly into the CLI shell (Hybrid mode) |
-| **D-Pad Up/Down/Left/Right** | `Up` / `Down` / `Left` / `Right` | Move keyboard cursor |
-| **A (Select)** | `Enter` / `Space` / `J` / `Z` | Select key under cursor |
-| **B (Back)** | `Backspace` / `K` | Backspace / Delete character |
-| **X (Shift)** | `F1` / `U` / `X` | Toggle Shift (One-shot) |
-| **Y (Ctrl)** | `F2` / `I` / `Y` | Toggle Ctrl (Sticky) |
-| **L1** | `F3` / `PageUp` / `[` | Toggle Symbols Layer |
-| **R1** | `F4` / `PageDown` / `]` | Toggle Numbers Layer |
-| **Start** | `Tab` / `F5` | Send Enter / Execute command |
-| **Select** | `Esc` / `F12` | Send Escape |
-| **Toggle Input Mode** | `F9` / `Insert` | Switch between Direct/Hybrid & Gamepad mode |
-| **Quit** | `Ctrl + Q` / `F10` | Exit cyberdeck-kb cleanly |
+| **`A`** | `304 (BTN_SOUTH)` | **Type / Select key under cursor** |
+| **`B`** | `305 (BTN_EAST)` | **Backspace / Delete** |
+| **`X`** | `307 (BTN_NORTH)` | **Shift Modifier** (One-shot uppercase & symbols) |
+| **`Y`** | `308 (BTN_WEST)` | **Tab Key** (Bash autocomplete / indent) |
+| **`L1`** | `310 (BTN_TL)` | **Ctrl Modifier** (`L1+C` = `^C`, `L1+B` = `tmux`, `L1+D` = EOF) |
+| **`L2`** | `312 (BTN_TL2)` | **Space Key** |
+| **`R1`** | `311 (BTN_TR)` | **Cycle Layers** (`BASE` ➔ `NUMS` ➔ `SYMS` ➔ `BASE`) |
+| **`R2`** | `313 (BTN_TR2)` | **Enter / Execute** |
+| **`SELECT`** | `314 (BTN_SELECT)` | **Escape Key** |
+| **`START`** | `315 (BTN_START)` | **Enter Key** |
+| **`F` Button** | `316 (BTN_MODE)` | **Toggle Virtual Keyboard (Show / Hide)** |
+| **D-Pad** | `544-547` | Move Virtual Keyboard Cursor |
+| **Right Stick** | `ABS_RY` | **Terminal Scroll Up / Down** (History / Pagers) |
 
 ---
 
