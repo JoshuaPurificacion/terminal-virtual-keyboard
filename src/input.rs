@@ -247,14 +247,45 @@ impl EvdevGamepadInput {
                         }
                     }
                     evdev::InputEventKind::AbsAxis(axis) => {
-                        if axis == evdev::AbsoluteAxisType::ABS_RY {
+                        let is_vertical = matches!(
+                            axis,
+                            evdev::AbsoluteAxisType::ABS_RY
+                                | evdev::AbsoluteAxisType::ABS_RZ
+                                | evdev::AbsoluteAxisType::ABS_HAT0Y
+                                | evdev::AbsoluteAxisType::ABS_HAT1Y
+                        );
+
+                        let is_horizontal = matches!(
+                            axis,
+                            evdev::AbsoluteAxisType::ABS_RX
+                                | evdev::AbsoluteAxisType::ABS_Z
+                                | evdev::AbsoluteAxisType::ABS_HAT0X
+                                | evdev::AbsoluteAxisType::ABS_HAT1X
+                        );
+
+                        if is_vertical {
                             let val = ev.value();
-                            if (val < -12000 || (val > 0 && val < 400)) && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(150) {
+                            let is_up = val < -5000 || (val > 0 && val < 1000) || (val >= 0 && val < 80 && val != 0);
+                            let is_down = val > 5000 || val > 3000 || (val > 180 && val <= 255);
+
+                            if is_up && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(100) {
                                 self.last_ry_tick = std::time::Instant::now();
                                 return Some(InputEvent::Passthrough(b"\x1b[A".to_vec())); // Up Arrow / Scroll Up
-                            } else if (val > 12000 || val > 1600) && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(150) {
+                            } else if is_down && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(100) {
                                 self.last_ry_tick = std::time::Instant::now();
                                 return Some(InputEvent::Passthrough(b"\x1b[B".to_vec())); // Down Arrow / Scroll Down
+                            }
+                        } else if is_horizontal {
+                            let val = ev.value();
+                            let is_left = val < -5000 || (val > 0 && val < 1000) || (val >= 0 && val < 80 && val != 0);
+                            let is_right = val > 5000 || val > 3000 || (val > 180 && val <= 255);
+
+                            if is_left && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(100) {
+                                self.last_ry_tick = std::time::Instant::now();
+                                return Some(InputEvent::Passthrough(b"\x1b[D".to_vec())); // Left Arrow
+                            } else if is_right && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(100) {
+                                self.last_ry_tick = std::time::Instant::now();
+                                return Some(InputEvent::Passthrough(b"\x1b[C".to_vec())); // Right Arrow
                             }
                         }
                     }
