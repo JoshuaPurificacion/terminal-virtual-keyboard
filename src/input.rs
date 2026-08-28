@@ -204,13 +204,16 @@ impl EvdevGamepadInput {
         let dev = self.device.as_mut()?;
         if let Ok(events) = dev.fetch_events() {
             for ev in events {
-                if let evdev::InputEventKind::Key(key) = ev.kind() {
-                    // Only process key press (value == 1)
-                    if ev.value() == 1 {
-                        if let Some(mapped) = Self::map_evdev_key(key) {
-                            return Some(mapped);
+                match ev.kind() {
+                    evdev::InputEventKind::Key(key) => {
+                        // Only process key press (value == 1)
+                        if ev.value() == 1 {
+                            if let Some(mapped) = Self::map_evdev_key(key) {
+                                return Some(mapped);
+                            }
                         }
                     }
+                    _ => {}
                 }
             }
         }
@@ -219,23 +222,33 @@ impl EvdevGamepadInput {
 
     pub fn map_evdev_key(key: evdev::Key) -> Option<InputEvent> {
         match key {
+            // RG353M D-Pad (Codes 544, 545, 546, 547)
             evdev::Key::KEY_UP | evdev::Key::BTN_DPAD_UP => Some(InputEvent::Up),
             evdev::Key::KEY_DOWN | evdev::Key::BTN_DPAD_DOWN => Some(InputEvent::Down),
             evdev::Key::KEY_LEFT | evdev::Key::BTN_DPAD_LEFT => Some(InputEvent::Left),
             evdev::Key::KEY_RIGHT | evdev::Key::BTN_DPAD_RIGHT => Some(InputEvent::Right),
 
-            evdev::Key::BTN_SOUTH | evdev::Key::BTN_0 | evdev::Key::KEY_ENTER => Some(InputEvent::Select),
-            evdev::Key::BTN_EAST | evdev::Key::BTN_1 | evdev::Key::KEY_BACKSPACE => Some(InputEvent::Back),
-            evdev::Key::BTN_NORTH | evdev::Key::BTN_2 | evdev::Key::KEY_F1 => Some(InputEvent::ShiftKey),
-            evdev::Key::BTN_WEST | evdev::Key::BTN_3 | evdev::Key::KEY_F2 => Some(InputEvent::CtrlKey),
+            // RG353M Face Buttons (Codes 304, 305, 307, 308)
+            evdev::Key::BTN_SOUTH | evdev::Key::BTN_0 | evdev::Key::KEY_ENTER => Some(InputEvent::Select), // A
+            evdev::Key::BTN_EAST | evdev::Key::BTN_1 | evdev::Key::KEY_BACKSPACE => Some(InputEvent::Back), // B
+            evdev::Key::BTN_NORTH | evdev::Key::BTN_2 | evdev::Key::KEY_F1 => Some(InputEvent::ShiftKey),   // X
+            evdev::Key::BTN_WEST | evdev::Key::BTN_3 | evdev::Key::KEY_F2 => Some(InputEvent::CtrlKey),    // Y
 
-            evdev::Key::BTN_TL | evdev::Key::BTN_TL2 | evdev::Key::KEY_F3 | evdev::Key::KEY_PAGEUP => Some(InputEvent::L1),
-            evdev::Key::BTN_TR | evdev::Key::BTN_TR2 | evdev::Key::KEY_F4 | evdev::Key::KEY_PAGEDOWN => Some(InputEvent::R1),
+            // RG353M Shoulders & Triggers (Codes 310, 311, 312, 313)
+            evdev::Key::BTN_TL | evdev::Key::KEY_F3 | evdev::Key::KEY_PAGEUP => Some(InputEvent::L1),       // L1 -> Symbols
+            evdev::Key::BTN_TR | evdev::Key::KEY_F4 | evdev::Key::KEY_PAGEDOWN => Some(InputEvent::R1),     // R1 -> Numbers
+            evdev::Key::BTN_TL2 => Some(InputEvent::Passthrough(vec![b' '])),                               // L2 -> Quick Space
+            evdev::Key::BTN_TR2 => Some(InputEvent::Start),                                                  // R2 -> Quick Enter
 
-            evdev::Key::BTN_START | evdev::Key::KEY_TAB => Some(InputEvent::Start),
-            evdev::Key::BTN_SELECT | evdev::Key::KEY_ESC => Some(InputEvent::Select2),
+            // RG353M System Buttons (Codes 314, 315, 316)
+            evdev::Key::BTN_START | evdev::Key::KEY_TAB => Some(InputEvent::Start),                         // START
+            evdev::Key::BTN_SELECT | evdev::Key::KEY_ESC => Some(InputEvent::Select2),                      // SELECT -> Escape
+            evdev::Key::BTN_MODE | evdev::Key::KEY_HOMEPAGE | evdev::Key::KEY_F => Some(InputEvent::ToggleMode), // F Button (316)
 
-            evdev::Key::BTN_MODE | evdev::Key::KEY_HOMEPAGE | evdev::Key::KEY_F => Some(InputEvent::ToggleMode),
+            // Thumbstick clicks (Codes 317, 318)
+            evdev::Key::BTN_THUMBL => Some(InputEvent::ToggleMode),
+            evdev::Key::BTN_THUMBR => Some(InputEvent::L1),
+
             _ => None,
         }
     }
