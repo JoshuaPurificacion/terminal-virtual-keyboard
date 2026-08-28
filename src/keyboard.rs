@@ -29,6 +29,10 @@ pub enum KeyAction {
     ToggleCtrl,
     SetLayer(Layer),
     Arrow(Direction),
+    PageUp,
+    PageDown,
+    Home,
+    End,
 }
 
 #[allow(dead_code)]
@@ -178,14 +182,22 @@ impl KeyboardState {
         vec![
             vec![
                 KeyDef::new_char('1'), KeyDef::new_char('2'), KeyDef::new_char('3'),
+                KeyDef::new_action(" ▲ ", KeyAction::Arrow(Direction::Up)),
+                KeyDef::new_action("PgUp", KeyAction::PageUp),
+                KeyDef::new_action("Home", KeyAction::Home),
                 KeyDef::new_char('+'), KeyDef::new_char('-'), KeyDef::new_char('*'),
             ],
             vec![
                 KeyDef::new_char('4'), KeyDef::new_char('5'), KeyDef::new_char('6'),
+                KeyDef::new_action(" ▼ ", KeyAction::Arrow(Direction::Down)),
+                KeyDef::new_action("PgDn", KeyAction::PageDown),
+                KeyDef::new_action("End", KeyAction::End),
                 KeyDef::new_char('/'), KeyDef::new_char('='), KeyDef::new_char('%'),
             ],
             vec![
                 KeyDef::new_char('7'), KeyDef::new_char('8'), KeyDef::new_char('9'),
+                KeyDef::new_action(" ◀ ", KeyAction::Arrow(Direction::Left)),
+                KeyDef::new_action(" ▶ ", KeyAction::Arrow(Direction::Right)),
                 KeyDef::new_char('('), KeyDef::new_char(')'), KeyDef::new_char('^'),
             ],
             vec![
@@ -403,6 +415,10 @@ impl KeyboardState {
             KeyAction::Arrow(Direction::Down) => Some(vec![0x1B, b'[', b'B']),
             KeyAction::Arrow(Direction::Right) => Some(vec![0x1B, b'[', b'C']),
             KeyAction::Arrow(Direction::Left) => Some(vec![0x1B, b'[', b'D']),
+            KeyAction::PageUp => Some(vec![0x1B, b'[', b'5', b'~']),
+            KeyAction::PageDown => Some(vec![0x1B, b'[', b'6', b'~']),
+            KeyAction::Home => Some(vec![0x1B, b'[', b'H']),
+            KeyAction::End => Some(vec![0x1B, b'[', b'F']),
         }
     }
 

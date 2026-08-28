@@ -174,6 +174,7 @@ impl PcKeyboardInput {
 
 pub struct EvdevGamepadInput {
     pub device: Option<evdev::Device>,
+    last_ry_tick: std::time::Instant,
 }
 
 impl EvdevGamepadInput {
@@ -194,7 +195,10 @@ impl EvdevGamepadInput {
             eprintln!("[EvdevGamepadInput] Warning: No evdev gamepad found. Check /dev/input permissions.");
         }
 
-        Self { device }
+        Self {
+            device,
+            last_ry_tick: std::time::Instant::now(),
+        }
     }
 
     pub fn find_gamepad() -> Option<evdev::Device> {
@@ -223,6 +227,18 @@ impl EvdevGamepadInput {
                         if ev.value() == 1 {
                             if let Some(mapped) = Self::map_evdev_key(key) {
                                 return Some(mapped);
+                            }
+                        }
+                    }
+                    evdev::InputEventKind::AbsAxis(axis) => {
+                        if axis == evdev::AbsoluteAxisType::ABS_RY {
+                            let val = ev.value();
+                            if (val < -12000 || (val > 0 && val < 400)) && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(150) {
+                                self.last_ry_tick = std::time::Instant::now();
+                                return Some(InputEvent::Passthrough(b"\x1b[A".to_vec())); // Up Arrow / Scroll Up
+                            } else if (val > 12000 || val > 1600) && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(150) {
+                                self.last_ry_tick = std::time::Instant::now();
+                                return Some(InputEvent::Passthrough(b"\x1b[B".to_vec())); // Down Arrow / Scroll Down
                             }
                         }
                     }
