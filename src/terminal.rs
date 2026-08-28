@@ -17,15 +17,17 @@ pub struct TerminalGuard;
 
 impl TerminalGuard {
     pub fn new() -> io::Result<Self> {
-        enable_raw_mode()?;
+        if let Err(e) = enable_raw_mode() {
+            eprintln!("[TerminalGuard] enable_raw_mode note: {}", e);
+        }
         let mut stdout = io::stdout();
-        execute!(
+        let _ = execute!(
             stdout,
             EnterAlternateScreen,
             Hide,
             Clear(ClearType::All),
             EnableMouseCapture
-        )?;
+        );
 
         // Panic hook to restore terminal if anything goes wrong
         let default_hook = panic::take_hook();

@@ -13,15 +13,27 @@ use pty::PtySession;
 use std::time::Duration;
 use terminal::{Renderer, TerminalGuard};
 
-fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+fn main() {
+    if let Err(e) = run() {
+        eprintln!("[cyberdeck-kb FATAL ERROR] {}", e);
+        // Keep error visible for 4 seconds if run on direct TTY
+        std::thread::sleep(Duration::from_secs(4));
+    }
+}
+
+fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // 1. Setup terminal raw mode and safety drop guard
     let _guard = TerminalGuard::new()?;
 
     // 2. Load configuration
     let cfg = Config::load();
 
-    // 3. Initialize terminal dimensions & renderer
-    let (mut cols, mut rows) = size()?;
+    // 3. Initialize terminal dimensions & renderer (Default to RG353M 80x30 if probe fails)
+    let (mut cols, mut rows) = size().unwrap_or((80, 30));
+    if cols == 0 || rows == 0 {
+        cols = 80;
+        rows = 30;
+    }
     let mut renderer = Renderer::new();
 
     // 4. Initialize keyboard state, PC input mapper, and Linux evdev reader
@@ -44,44 +56,46 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut running = true;
     while running {
         // Poll for inputs with a short timeout to maintain smooth rendering
-        if event::poll(Duration::from_millis(25))? {
-            match event::read()? {
-                Event::Resize(new_cols, new_rows) => {
-                    cols = new_cols;
-                    rows = new_rows;
-                    let current_kb_rows = kb.get_layout().len() as u16 + 2;
-                    let new_shell_rows = if rows > current_kb_rows + 2 {
-                        rows - current_kb_rows
-                    } else {
-                        rows.saturating_sub(current_kb_rows)
-                    };
-                    let _ = pty.resize(new_shell_rows.max(1), cols.max(1));
-                }
-                Event::Mouse(mouse_event) => {
-                    if let crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left) = mouse_event.kind {
-                        let current_kb_rows = kb.get_layout().len() as u16;
-                        let status_bar_height = 2u16;
-                        let kb_total_height = current_kb_rows + status_bar_height;
-                        let shell_height = if rows > kb_total_height + 2 {
-                            rows - kb_total_height
+        if let Ok(true) = event::poll(Duration::from_millis(25)) {
+            if let Ok(ev) = event::read() {
+                match ev {
+                    Event::Resize(new_cols, new_rows) => {
+                        cols = if new_cols > 0 { new_cols } else { 80 };
+                        rows = if new_rows > 0 { new_rows } else { 30 };
+                        let current_kb_rows = kb.get_layout().len() as u16 + 2;
+                        let new_shell_rows = if rows > current_kb_rows + 2 {
+                            rows - current_kb_rows
                         } else {
-                            rows.saturating_sub(current_kb_rows + 1)
+                            rows.saturating_sub(current_kb_rows)
                         };
-                        let kb_start_row = shell_height + 1;
+                        let _ = pty.resize(new_shell_rows.max(1), cols.max(1));
+                    }
+                    Event::Mouse(mouse_event) => {
+                        if let crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left) = mouse_event.kind {
+                            let current_kb_rows = kb.get_layout().len() as u16;
+                            let status_bar_height = 2u16;
+                            let kb_total_height = current_kb_rows + status_bar_height;
+                            let shell_height = if rows > kb_total_height + 2 {
+                                rows - kb_total_height
+                            } else {
+                                rows.saturating_sub(current_kb_rows + 1)
+                            };
+                            let kb_start_row = shell_height + 1;
 
-                        if let Some((r, c)) = kb.hit_test(mouse_event.column, mouse_event.row, kb_start_row) {
-                            if let Some(bytes) = kb.tap_key(r, c) {
-                                let _ = pty.write(&bytes);
+                            if let Some((r, c)) = kb.hit_test(mouse_event.column, mouse_event.row, kb_start_row) {
+                                if let Some(bytes) = kb.tap_key(r, c) {
+                                    let _ = pty.write(&bytes);
+                                }
                             }
                         }
                     }
-                }
-                Event::Key(key_event) => {
-                    if let Some(event) = input_mapper.map_key(key_event) {
-                        process_input_event(event, &mut kb, &mut pty, &mut input_mapper, cols, rows, &mut running);
+                    Event::Key(key_event) => {
+                        if let Some(event) = input_mapper.map_key(key_event) {
+                            process_input_event(event, &mut kb, &mut pty, &mut input_mapper, cols, rows, &mut running);
+                        }
                     }
+                    _ => {}
                 }
-                _ => {}
             }
         }
 
