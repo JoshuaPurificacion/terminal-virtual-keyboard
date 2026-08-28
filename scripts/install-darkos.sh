@@ -65,11 +65,16 @@ PORT
     fi
 done
 
-echo "[3/4] Writing default configuration ($CONFIG_DIR/config.toml)..."
-if [ ! -f "$CONFIG_DIR/config.toml" ]; then
-    cat << 'CFG' > "$CONFIG_DIR/config.toml"
+echo "[3/4] Ensuring tmux is installed & writing configuration ($CONFIG_DIR/config.toml)..."
+if ! command -v tmux &> /dev/null; then
+    echo "Installing tmux for session persistence & pair programming..."
+    apt-get update -qq && apt-get install -y -qq tmux || true
+fi
+
+cat << 'CFG' > "$CONFIG_DIR/config.toml"
 # Cyberdeck-KB & DarkOS Configuration
-shell = "/bin/bash"
+# Default to tmux session 'main' for persistence & pairing over SSH
+shell = "tmux new-session -A -s main"
 gamepad_device = "/dev/input/event4"
 keyboard_height_ratio = 0.45
 min_keyboard_height = 9
@@ -77,7 +82,6 @@ max_keyboard_height = 14
 repeat_delay_ms = 250
 repeat_rate_ms = 50
 CFG
-fi
 
 echo "[4/4] Setting up systemd background service..."
 cat << 'SVC' > "$SERVICE_PATH"
