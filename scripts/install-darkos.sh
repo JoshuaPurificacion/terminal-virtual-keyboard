@@ -59,6 +59,12 @@ for dir in /roms/ports /roms/tools /roms2/ports /roms2/tools /storage/roms/ports
         echo "Creating EmulationStation shortcut in $dir/Cyberdeck.sh..."
         cat << 'PORT' > "$dir/Cyberdeck.sh"
 #!/bin/bash
+# Set crisp 8x16 console font for optimal 80x30 resolution on 640x480 screen
+setfont /usr/share/consolefonts/Uni3-Terminus16.psf.gz 2>/dev/null || \
+setfont /usr/share/consolefonts/Uni3-TerminusBold14.psf.gz 2>/dev/null || \
+setfont /usr/share/consolefonts/default8x16.psf.gz 2>/dev/null || \
+setfont /usr/share/consolefonts/Lat15-Terminus16.psf.gz 2>/dev/null || true
+
 /opt/cyberdeck/bin/cyberdeck-kb
 PORT
         chmod +x "$dir/Cyberdeck.sh"
