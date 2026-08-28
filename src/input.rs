@@ -175,6 +175,7 @@ pub struct EvdevGamepadInput {
     last_ry_tick: std::time::Instant,
     select_held: bool,
     start_held: bool,
+    l1_held: bool,
 }
 
 impl EvdevGamepadInput {
@@ -200,6 +201,7 @@ impl EvdevGamepadInput {
             last_ry_tick: std::time::Instant::now(),
             select_held: false,
             start_held: false,
+            l1_held: false,
         }
     }
 
@@ -227,6 +229,10 @@ impl EvdevGamepadInput {
                     evdev::InputEventKind::Key(key) => {
                         let is_press = ev.value() == 1;
 
+                        if key == evdev::Key::BTN_TL {
+                            self.l1_held = is_press;
+                        }
+
                         if key == evdev::Key::BTN_SELECT {
                             self.select_held = is_press;
                             if is_press && self.start_held {
@@ -237,6 +243,14 @@ impl EvdevGamepadInput {
                             if is_press && self.select_held {
                                 return Some(InputEvent::Quit);
                             }
+                        } else if key == evdev::Key::BTN_MODE && is_press {
+                            if self.l1_held {
+                                return Some(InputEvent::Passthrough(vec![0x02])); // L1 + F -> Send Ctrl+B prefix!
+                            } else {
+                                return Some(InputEvent::ToggleKeyboard); // F alone -> Show/Hide KB
+                            }
+                        } else if key == evdev::Key::BTN_TR && is_press && self.l1_held {
+                            return Some(InputEvent::Passthrough(vec![0x02, b'n'])); // L1 + R1 -> Next tmux tab!
                         }
 
                         // Only process key press (value == 1)
@@ -268,12 +282,14 @@ impl EvdevGamepadInput {
                             let is_up = val < -5000 || (val > 0 && val < 1000) || (val >= 0 && val < 80 && val != 0);
                             let is_down = val > 5000 || val > 3000 || (val > 180 && val <= 255);
 
-                            if is_up && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(100) {
+                            if is_up && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(80) {
                                 self.last_ry_tick = std::time::Instant::now();
-                                return Some(InputEvent::Passthrough(b"\x1b[A".to_vec())); // Up Arrow / Scroll Up
-                            } else if is_down && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(100) {
+                                // Send mouse wheel up (\x1b[<64;40;10M) and Up arrow for universal scrolling
+                                return Some(InputEvent::Passthrough(b"\x1b[<64;40;10M\x1b[A".to_vec()));
+                            } else if is_down && self.last_ry_tick.elapsed() >= std::time::Duration::from_millis(80) {
                                 self.last_ry_tick = std::time::Instant::now();
-                                return Some(InputEvent::Passthrough(b"\x1b[B".to_vec())); // Down Arrow / Scroll Down
+                                // Send mouse wheel down (\x1b[<65;40;10M) and Down arrow
+                                return Some(InputEvent::Passthrough(b"\x1b[<65;40;10M\x1b[B".to_vec()));
                             }
                         } else if is_horizontal {
                             let val = ev.value();
