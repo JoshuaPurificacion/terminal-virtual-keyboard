@@ -21,15 +21,17 @@ mkdir -p "$BIN_DIR"
 mkdir -p "$CONFIG_DIR"
 
 echo "[2/4] Installing binaries..."
-if [ -f "target/release/cyberdeck-kb" ] && [ -f "target/release/deck-launcher" ]; then
-    cp target/release/cyberdeck-kb "$BIN_DIR/"
-    cp target/release/deck-launcher "$BIN_DIR/"
-else
+if [ ! -f "target/release/cyberdeck-kb" ] || [ ! -f "target/release/deck-launcher" ]; then
     echo "Compiling release binaries..."
-    cargo build --release
-    cp target/release/cyberdeck-kb "$BIN_DIR/"
-    cp target/release/deck-launcher "$BIN_DIR/"
+    if [ -n "$SUDO_USER" ]; then
+        sudo -u "$SUDO_USER" cargo build --release || cargo build --release
+    else
+        cargo build --release
+    fi
 fi
+
+cp target/release/cyberdeck-kb "$BIN_DIR/"
+cp target/release/deck-launcher "$BIN_DIR/"
 
 chmod +x "$BIN_DIR/cyberdeck-kb"
 chmod +x "$BIN_DIR/deck-launcher"
