@@ -83,6 +83,23 @@ repeat_delay_ms = 250
 repeat_rate_ms = 50
 CFG
 
+# Setup friendly ~/.tmux.conf with touch/mouse split switching & clean style
+for home_dir in /home/ark /root; do
+    if [ -d "$home_dir" ] && [ ! -f "$home_dir/.tmux.conf" ]; then
+        cat << 'TMUXCFG' > "$home_dir/.tmux.conf"
+# Enable mouse / touchscreen to click between split panes
+set -g mouse on
+set -g default-terminal "xterm-256color"
+set -g history-limit 10000
+set -g status-bg colour235
+set -g status-fg colour136
+TMUXCFG
+        if [ "$home_dir" = "/home/ark" ]; then
+            chown ark:ark /home/ark/.tmux.conf || true
+        fi
+    fi
+done
+
 echo "[4/4] Setting up systemd background service..."
 cat << 'SVC' > "$SERVICE_PATH"
 [Unit]
