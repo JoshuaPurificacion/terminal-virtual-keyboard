@@ -188,15 +188,17 @@ impl Renderer {
             Layer::Symbols => Color::Magenta,
         };
 
-        let shift_status = if kb.shift_active { "[SHIFT: ON]" } else { "[SHIFT]" };
-        let ctrl_status = if kb.ctrl_active { "[CTRL: ON]" } else { "[CTRL]" };
+        let shift_status = if kb.shift_active { " [SHFT]" } else { "" };
+        let ctrl_status = if kb.ctrl_active { " [CTRL]" } else { "" };
 
-        let left_info = format!(" ⌨ cyberdeck-kb ─ [{}] ─ Layer: ", input_mode_name);
-        let right_info = format!(" ─ {} ─ {} ─ Last: {} ", shift_status, ctrl_status, kb.last_output_desc);
+        let status_line = if cols < 55 {
+            format!(" [{}] Layer: {}{}{} ", input_mode_name, kb.active_layer.name(), shift_status, ctrl_status)
+        } else {
+            format!(" ⌨ [{}] ─ Layer: {} ─ {}{} ─ Last: {} ", input_mode_name, kb.active_layer.name(), shift_status, ctrl_status, kb.last_output_desc)
+        };
 
-        let used_len = left_info.len() + kb.active_layer.name().len() + right_info.len();
-        let fill_len = if (cols as usize) > used_len {
-            (cols as usize) - used_len
+        let fill_len = if (cols as usize) > status_line.len() {
+            (cols as usize) - status_line.len()
         } else {
             0
         };
@@ -206,11 +208,8 @@ impl Renderer {
             self.stdout,
             SetBackgroundColor(Color::DarkBlue),
             SetForegroundColor(Color::White),
-            Print(&left_info),
+            Print(&status_line),
             SetForegroundColor(layer_color),
-            Print(kb.active_layer.name()),
-            SetForegroundColor(Color::White),
-            Print(&right_info),
             Print(&fill),
             ResetColor
         )?;
@@ -226,11 +225,9 @@ impl Renderer {
 
             let item_count = row.len();
 
-            // Render keys
+            // Render keys compactly (e.g. [q] or ▶q◀)
             for (c_idx, key) in row.iter().enumerate() {
                 let is_selected = kb.cursor_row == r_idx && kb.cursor_col == c_idx;
-
-                let key_label = format!(" {} ", key.label);
 
                 if is_selected {
                     execute!(
@@ -238,7 +235,7 @@ impl Renderer {
                         SetBackgroundColor(Color::Cyan),
                         SetForegroundColor(Color::Black),
                         Print("▶"),
-                        Print(&key_label),
+                        Print(&key.label),
                         Print("◀"),
                         ResetColor
                     )?;
@@ -248,7 +245,7 @@ impl Renderer {
                         SetBackgroundColor(Color::DarkGrey),
                         SetForegroundColor(Color::White),
                         Print("["),
-                        Print(&key_label),
+                        Print(&key.label),
                         Print("]"),
                         ResetColor
                     )?;
@@ -263,9 +260,13 @@ impl Renderer {
         Ok(())
     }
 
-    fn render_legend(&mut self, _cols: u16, row: u16) -> io::Result<()> {
+    fn render_legend(&mut self, cols: u16, row: u16) -> io::Result<()> {
         execute!(self.stdout, MoveTo(0, row), Clear(ClearType::CurrentLine))?;
-        let legend = " [F / F6]: Show/Hide KB  [Touch]: Tap Keys  [Direct]: Type  [D-Pad]: Nav  [F9]: Mode  [Ctrl+Q]: Exit";
+        let legend = if cols < 55 {
+            " [F]: KB  [A]: Type  [B]: Del  [X]: Shift  [Y]: Tab  [R1]: Layer"
+        } else {
+            " [F]: Hide KB  [A]: Type  [B]: Del  [X]: Shift  [Y]: Tab  [L1]: Ctrl  [R1]: Layer  [Ctrl+Q]: Exit"
+        };
 
         execute!(
             self.stdout,

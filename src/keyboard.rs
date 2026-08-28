@@ -441,7 +441,7 @@ impl KeyboardState {
         let mut cur_x = 0u16;
 
         for (c_idx, key) in keys.iter().enumerate() {
-            let key_width = (key.label.len() + 4) as u16;
+            let key_width = (key.label.len() + 2) as u16;
             let end_x = cur_x + key_width;
 
             if col >= cur_x && col < end_x {
@@ -578,9 +578,9 @@ mod tests {
     #[test]
     fn test_touch_tap_and_hit_test() {
         let mut kb = KeyboardState::new();
-        // Row 0 start_row = 10. Key 0 ('1') is cols 0..5, Key 1 ('2') is cols 6..11
-        assert_eq!(kb.hit_test(2, 10, 10), Some((0, 0)));
-        assert_eq!(kb.hit_test(7, 10, 10), Some((0, 1)));
+        // Row 0 start_row = 10. Key 0 ('1') is cols 0..2, Key 1 ('2') is cols 4..6
+        assert_eq!(kb.hit_test(1, 10, 10), Some((0, 0)));
+        assert_eq!(kb.hit_test(5, 10, 10), Some((0, 1)));
 
         // Tap on key (0, 0)
         let output = kb.tap_key(0, 0);
