@@ -88,18 +88,9 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         "[deck-launcher] Attached to controller: {}",
         device.name().unwrap_or("Unknown Gamepad")
     );
-    println!("[deck-launcher] Conflict-free triggers active:");
-    println!("[deck-launcher]   - [SELECT + START] simultaneously");
-    println!("[deck-launcher]   - [F + START] (Hold F + press START)");
-    println!("[deck-launcher]   - [L3 + R3] (Click both analog sticks)");
-    println!("[deck-launcher]   - Hold [F] button for 1.2 seconds");
+    println!("[deck-launcher] Active Trigger: Press [F] Button to launch Cyberdeck Mode");
 
     let running = Arc::new(AtomicBool::new(true));
-    let mut select_held = false;
-    let mut start_held = false;
-    let mut f_held_since: Option<std::time::Instant> = None;
-    let mut l3_held = false;
-    let mut r3_held = false;
 
     while running.load(Ordering::SeqCst) {
         let mut should_reconnect = false;
@@ -108,78 +99,20 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 for ev in events {
                     if let InputEventKind::Key(key) = ev.kind() {
                         let is_press = ev.value() == 1;
-                        let is_release = ev.value() == 0;
 
                         match key {
-                            Key::BTN_SELECT | Key::KEY_ESC => {
-                                if is_press {
-                                    select_held = true;
-                                } else if is_release {
-                                    select_held = false;
-                                }
-                            }
-                            Key::BTN_START | Key::KEY_TAB => {
-                                if is_press {
-                                    start_held = true;
-                                } else if is_release {
-                                    start_held = false;
-                                }
-                            }
                             Key::BTN_MODE | Key::KEY_HOMEPAGE | Key::KEY_F => {
                                 if is_press {
-                                    f_held_since = Some(std::time::Instant::now());
-                                } else if is_release {
-                                    f_held_since = None;
+                                    println!("[deck-launcher] [F] Button pressed! Entering Cyberdeck Mode...");
+                                    trigger_cyberdeck_mode(&es_process_name, &cyberdeck_bin);
                                 }
                             }
-                            Key::BTN_THUMBL => {
-                                l3_held = is_press;
-                            }
-                            Key::BTN_THUMBR => {
-                                r3_held = is_press;
-                            }
                             _ => {}
-                        }
-
-                        // Check 1: SELECT + START combo
-                        if select_held && start_held {
-                            println!("[deck-launcher] Hotkey combo triggered: [SELECT + START]!");
-                            trigger_cyberdeck_mode(&es_process_name, &cyberdeck_bin);
-                            select_held = false;
-                            start_held = false;
-                            f_held_since = None;
-                        }
-
-                        // Check 2: F + START combo
-                        if f_held_since.is_some() && start_held {
-                            println!("[deck-launcher] Hotkey combo triggered: [F + START]!");
-                            trigger_cyberdeck_mode(&es_process_name, &cyberdeck_bin);
-                            select_held = false;
-                            start_held = false;
-                            f_held_since = None;
-                        }
-
-                        // Check 3: L3 + R3 (both thumbstick clicks)
-                        if l3_held && r3_held {
-                            println!("[deck-launcher] Hotkey combo triggered: [L3 + R3]!");
-                            trigger_cyberdeck_mode(&es_process_name, &cyberdeck_bin);
-                            l3_held = false;
-                            r3_held = false;
                         }
                     }
                 }
             }
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                // Check 4: Hold F button alone for 1.2 seconds (Long-press)
-                if let Some(t) = f_held_since {
-                    if t.elapsed() >= Duration::from_millis(1200) {
-                        println!("[deck-launcher] Long-press triggered: Held [F] for 1.2s!");
-                        trigger_cyberdeck_mode(&es_process_name, &cyberdeck_bin);
-                        f_held_since = None;
-                        select_held = false;
-                        start_held = false;
-                    }
-                }
                 thread::sleep(Duration::from_millis(25));
             }
             Err(e) => {

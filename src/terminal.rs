@@ -67,6 +67,13 @@ impl Renderer {
         cols: u16,
         rows: u16,
     ) -> io::Result<()> {
+        if !kb.visible {
+            // Keyboard is hidden: render 100% full screen shell area
+            self.render_shell_area(screen, cols, rows)?;
+            self.stdout.flush()?;
+            return Ok(());
+        }
+
         let kb_layout = kb.get_layout();
         let kb_rows = kb_layout.len() as u16;
         let status_bar_height = 2u16; // 1 separator + 1 help legend
@@ -259,7 +266,7 @@ impl Renderer {
 
     fn render_legend(&mut self, cols: u16, row: u16) -> io::Result<()> {
         execute!(self.stdout, MoveTo(0, row))?;
-        let legend = " [Touch/Click]: Tap Keys  [Direct]: Type normally  [D-Pad]: Nav  [F9]: Switch Mode  [Ctrl+Q]: Exit";
+        let legend = " [F / F6]: Show/Hide KB  [Touch]: Tap Keys  [Direct]: Type  [D-Pad]: Nav  [F9]: Mode  [Ctrl+Q]: Exit";
         let fill_len = if (cols as usize) > legend.len() {
             (cols as usize) - legend.len()
         } else {

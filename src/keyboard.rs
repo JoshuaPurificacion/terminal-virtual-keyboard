@@ -68,6 +68,7 @@ pub struct KeyboardState {
     pub active_layer: Layer,
     pub shift_active: bool, // One-shot
     pub ctrl_active: bool,  // Sticky
+    pub visible: bool,      // On-screen keyboard visibility toggle
     pub last_output_desc: String,
 }
 
@@ -79,6 +80,7 @@ impl Default for KeyboardState {
             active_layer: Layer::Base,
             shift_active: false,
             ctrl_active: false,
+            visible: true,
             last_output_desc: "Ready".to_string(),
         }
     }
@@ -412,9 +414,15 @@ impl KeyboardState {
         }
     }
 
+    pub fn toggle_visibility(&mut self) -> bool {
+        self.visible = !self.visible;
+        self.last_output_desc = format!("Keyboard: {}", if self.visible { "SHOWN" } else { "HIDDEN" });
+        self.visible
+    }
+
     /// Determines if a screen coordinate (col, row) hits any key in the keyboard grid
     pub fn hit_test(&self, col: u16, row: u16, start_row: u16) -> Option<(usize, usize)> {
-        if row < start_row {
+        if !self.visible || row < start_row {
             return None;
         }
         let r_idx = (row - start_row) as usize;

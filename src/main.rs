@@ -78,7 +78,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 }
                 Event::Key(key_event) => {
                     if let Some(event) = input_mapper.map_key(key_event) {
-                        process_input_event(event, &mut kb, &mut pty, &mut input_mapper, &mut running);
+                        process_input_event(event, &mut kb, &mut pty, &mut input_mapper, cols, rows, &mut running);
                     }
                 }
                 _ => {}
@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
         // Poll for direct Linux /dev/input gamepad events (for RG353M/DarkOS)
         while let Some(event) = evdev_input.poll_event() {
-            process_input_event(event, &mut kb, &mut pty, &mut input_mapper, &mut running);
+            process_input_event(event, &mut kb, &mut pty, &mut input_mapper, cols, rows, &mut running);
         }
 
         // Render current frame
@@ -105,6 +105,8 @@ fn process_input_event(
     kb: &mut KeyboardState,
     pty: &mut PtySession,
     input_mapper: &mut PcKeyboardInput,
+    cols: u16,
+    rows: u16,
     running: &mut bool,
 ) {
     match event {
@@ -143,6 +145,22 @@ fn process_input_event(
         InputEvent::ToggleMode => {
             let new_mode = input_mapper.toggle_mode();
             kb.last_output_desc = format!("Mode: {}", new_mode.name());
+        }
+        InputEvent::ToggleKeyboard => {
+            let visible = kb.toggle_visibility();
+            let new_shell_rows = if !visible {
+                rows
+            } else {
+                let kb_rows = kb.get_layout().len() as u16;
+                let status_bar_height = 2u16;
+                let kb_total_height = kb_rows + status_bar_height;
+                if rows > kb_total_height + 2 {
+                    rows - kb_total_height
+                } else {
+                    rows.saturating_sub(kb_rows + 1)
+                }
+            };
+            let _ = pty.resize(new_shell_rows.max(1), cols.max(1));
         }
         InputEvent::Quit => {
             *running = false;

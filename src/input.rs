@@ -31,6 +31,7 @@ pub enum InputEvent {
     Select2,  // Gamepad Select: Escape
     Quit,     // System exit
     ToggleMode, // Toggle between Hybrid and Gamepad Mode
+    ToggleKeyboard, // Show / Hide virtual keyboard on screen
     Passthrough(Vec<u8>), // Direct raw bytes to send to shell
 }
 
@@ -101,6 +102,7 @@ impl PcKeyboardInput {
             KeyCode::F(3) | KeyCode::PageUp => Some(InputEvent::L1),
             KeyCode::F(4) | KeyCode::PageDown => Some(InputEvent::R1),
             KeyCode::F(5) => Some(InputEvent::Start),
+            KeyCode::F(6) => Some(InputEvent::ToggleKeyboard),
             KeyCode::F(12) => Some(InputEvent::Select2),
 
             // Direct Typing: Control Sequences
@@ -162,6 +164,7 @@ impl PcKeyboardInput {
 
             // Start & Select buttons
             KeyCode::Tab | KeyCode::F(5) => Some(InputEvent::Start),
+            KeyCode::F(6) => Some(InputEvent::ToggleKeyboard),
             KeyCode::Esc | KeyCode::F(12) => Some(InputEvent::Select2),
 
             _ => None,
@@ -243,11 +246,11 @@ impl EvdevGamepadInput {
             // RG353M System Buttons (Codes 314, 315, 316)
             evdev::Key::BTN_START | evdev::Key::KEY_TAB => Some(InputEvent::Start),                         // START
             evdev::Key::BTN_SELECT | evdev::Key::KEY_ESC => Some(InputEvent::Select2),                      // SELECT -> Escape
-            evdev::Key::BTN_MODE | evdev::Key::KEY_HOMEPAGE | evdev::Key::KEY_F => Some(InputEvent::ToggleMode), // F Button (316)
+            evdev::Key::BTN_MODE | evdev::Key::KEY_HOMEPAGE | evdev::Key::KEY_F => Some(InputEvent::ToggleKeyboard), // F Button (316) -> Show/Hide KB
 
             // Thumbstick clicks (Codes 317, 318)
-            evdev::Key::BTN_THUMBL => Some(InputEvent::ToggleMode),
-            evdev::Key::BTN_THUMBR => Some(InputEvent::L1),
+            evdev::Key::BTN_THUMBL => Some(InputEvent::ToggleKeyboard), // L3 -> Show/Hide KB
+            evdev::Key::BTN_THUMBR => Some(InputEvent::L1),             // R3 -> Symbols
 
             _ => None,
         }
@@ -291,6 +294,9 @@ mod tests {
         // Mode toggle key
         assert_eq!(input.map_key(KeyEvent::new(KeyCode::F(9), KeyModifiers::NONE)), Some(InputEvent::ToggleMode));
 
+        // Keyboard toggle key
+        assert_eq!(input.map_key(KeyEvent::new(KeyCode::F(6), KeyModifiers::NONE)), Some(InputEvent::ToggleKeyboard));
+
         // Quit
         assert_eq!(input.map_key(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL)), Some(InputEvent::Quit));
     }
@@ -305,7 +311,7 @@ mod tests {
         assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_TR), Some(InputEvent::R1));
         assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_START), Some(InputEvent::Start));
         assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_SELECT), Some(InputEvent::Select2));
-        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_MODE), Some(InputEvent::ToggleMode));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_MODE), Some(InputEvent::ToggleKeyboard));
         assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_DPAD_UP), Some(InputEvent::Up));
     }
 }
