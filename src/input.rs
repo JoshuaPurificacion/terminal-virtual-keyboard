@@ -178,11 +178,21 @@ pub struct EvdevGamepadInput {
 
 impl EvdevGamepadInput {
     pub fn new(path: Option<&str>) -> Self {
-        let device = if let Some(p) = path {
+        let mut device = if let Some(p) = path {
             evdev::Device::open(p).ok()
         } else {
-            Self::find_gamepad()
+            None
         };
+
+        if device.is_none() {
+            device = Self::find_gamepad();
+        }
+
+        if let Some(ref d) = device {
+            eprintln!("[EvdevGamepadInput] Successfully hooked into: {}", d.name().unwrap_or("Gamepad"));
+        } else {
+            eprintln!("[EvdevGamepadInput] Warning: No evdev gamepad found. Check /dev/input permissions.");
+        }
 
         Self { device }
     }

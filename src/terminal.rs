@@ -8,7 +8,7 @@ use crossterm::{
         LeaveAlternateScreen,
     },
 };
-use std::io::{self, Stdout, Write};
+use std::io::{self, BufWriter, Stdout, Write};
 use std::panic;
 
 use crate::keyboard::{KeyboardState, Layer};
@@ -26,7 +26,8 @@ impl TerminalGuard {
             EnterAlternateScreen,
             Hide,
             Clear(ClearType::All),
-            EnableMouseCapture
+            EnableMouseCapture,
+            Print("\x1b[?7l") // Disable auto-wrap on right margin
         );
 
         // Panic hook to restore terminal if anything goes wrong
@@ -34,7 +35,13 @@ impl TerminalGuard {
         panic::set_hook(Box::new(move |info| {
             let _ = disable_raw_mode();
             let mut stdout = io::stdout();
-            let _ = execute!(stdout, DisableMouseCapture, LeaveAlternateScreen, Show);
+            let _ = execute!(
+                stdout,
+                Print("\x1b[?7h"), // Re-enable auto-wrap
+                DisableMouseCapture,
+                LeaveAlternateScreen,
+                Show
+            );
             default_hook(info);
         }));
 
@@ -46,18 +53,24 @@ impl Drop for TerminalGuard {
     fn drop(&mut self) {
         let _ = disable_raw_mode();
         let mut stdout = io::stdout();
-        let _ = execute!(stdout, DisableMouseCapture, LeaveAlternateScreen, Show);
+        let _ = execute!(
+            stdout,
+            Print("\x1b[?7h"), // Re-enable auto-wrap
+            DisableMouseCapture,
+            LeaveAlternateScreen,
+            Show
+        );
     }
 }
 
 pub struct Renderer {
-    stdout: Stdout,
+    stdout: BufWriter<Stdout>,
 }
 
 impl Renderer {
     pub fn new() -> Self {
         Self {
-            stdout: io::stdout(),
+            stdout: BufWriter::with_capacity(16384, io::stdout()),
         }
     }
 
@@ -69,9 +82,11 @@ impl Renderer {
         cols: u16,
         rows: u16,
     ) -> io::Result<()> {
+        let max_render_cols = cols.saturating_sub(1).max(1);
+
         if !kb.visible {
             // Keyboard is hidden: render 100% full screen shell area
-            self.render_shell_area(screen, cols, rows)?;
+            self.render_shell_area(screen, max_render_cols, rows)?;
             self.stdout.flush()?;
             return Ok(());
         }
@@ -88,20 +103,20 @@ impl Renderer {
         };
 
         // 1. Render Shell Output
-        self.render_shell_area(screen, cols, shell_height)?;
+        self.render_shell_area(screen, max_render_cols, shell_height)?;
 
         // 2. Render Separator & Status Line
         let status_row = shell_height;
-        self.render_status_bar(kb, input_mode_name, cols, status_row)?;
+        self.render_status_bar(kb, input_mode_name, max_render_cols, status_row)?;
 
         // 3. Render Virtual Keyboard Grid
         let kb_start_row = status_row + 1;
-        self.render_keyboard_grid(kb, cols, kb_start_row)?;
+        self.render_keyboard_grid(kb, max_render_cols, kb_start_row)?;
 
         // 4. Render Bottom Legend
         let legend_row = kb_start_row + kb_rows;
         if legend_row < rows {
-            self.render_legend(cols, legend_row)?;
+            self.render_legend(max_render_cols, legend_row)?;
         }
 
         self.stdout.flush()?;
@@ -119,7 +134,7 @@ impl Renderer {
         let rendered_rows: Vec<String> = screen.rows(0, cols).collect();
 
         for r in 0..shell_height {
-            execute!(self.stdout, MoveTo(0, r))?;
+            execute!(self.stdout, MoveTo(0, r), Clear(ClearType::CurrentLine))?;
             let r_usize = r as usize;
             if r_usize < rendered_rows.len() {
                 let row_str = &rendered_rows[r_usize];
@@ -153,9 +168,6 @@ impl Renderer {
                 } else {
                     execute!(self.stdout, ResetColor, Print(&line_buf))?;
                 }
-            } else {
-                let blank = " ".repeat(cols as usize);
-                execute!(self.stdout, ResetColor, Print(&blank))?;
             }
         }
         Ok(())
@@ -168,7 +180,7 @@ impl Renderer {
         cols: u16,
         row: u16,
     ) -> io::Result<()> {
-        execute!(self.stdout, MoveTo(0, row))?;
+        execute!(self.stdout, MoveTo(0, row), Clear(ClearType::CurrentLine))?;
 
         let layer_color = match kb.active_layer {
             Layer::Base => Color::Green,
@@ -205,26 +217,20 @@ impl Renderer {
         Ok(())
     }
 
-    fn render_keyboard_grid(&mut self, kb: &KeyboardState, cols: u16, start_row: u16) -> io::Result<()> {
+    fn render_keyboard_grid(&mut self, kb: &KeyboardState, _cols: u16, start_row: u16) -> io::Result<()> {
         let layout = kb.get_layout();
 
         for (r_idx, row) in layout.iter().enumerate() {
             let cur_row = start_row + r_idx as u16;
-            execute!(self.stdout, MoveTo(0, cur_row), ResetColor)?;
+            execute!(self.stdout, MoveTo(0, cur_row), Clear(ClearType::CurrentLine), ResetColor)?;
 
-            // Calculate total items and width spacing
             let item_count = row.len();
-            let mut row_rendered_len = 0usize;
 
             // Render keys
             for (c_idx, key) in row.iter().enumerate() {
                 let is_selected = kb.cursor_row == r_idx && kb.cursor_col == c_idx;
 
-                let key_label = if key.label.len() == 1 {
-                    format!(" {} ", key.label)
-                } else {
-                    format!(" {} ", key.label)
-                };
+                let key_label = format!(" {} ", key.label);
 
                 if is_selected {
                     execute!(
@@ -236,7 +242,6 @@ impl Renderer {
                         Print("◀"),
                         ResetColor
                     )?;
-                    row_rendered_len += key_label.len() + 2;
                 } else {
                     execute!(
                         self.stdout,
@@ -247,41 +252,26 @@ impl Renderer {
                         Print("]"),
                         ResetColor
                     )?;
-                    row_rendered_len += key_label.len() + 2;
                 }
 
                 // Spacing between keys
                 if c_idx + 1 < item_count {
                     execute!(self.stdout, Print(" "))?;
-                    row_rendered_len += 1;
                 }
-            }
-
-            // Fill remaining row width with blank spaces
-            if (cols as usize) > row_rendered_len {
-                let pad = " ".repeat((cols as usize) - row_rendered_len);
-                execute!(self.stdout, ResetColor, Print(&pad))?;
             }
         }
         Ok(())
     }
 
-    fn render_legend(&mut self, cols: u16, row: u16) -> io::Result<()> {
-        execute!(self.stdout, MoveTo(0, row))?;
+    fn render_legend(&mut self, _cols: u16, row: u16) -> io::Result<()> {
+        execute!(self.stdout, MoveTo(0, row), Clear(ClearType::CurrentLine))?;
         let legend = " [F / F6]: Show/Hide KB  [Touch]: Tap Keys  [Direct]: Type  [D-Pad]: Nav  [F9]: Mode  [Ctrl+Q]: Exit";
-        let fill_len = if (cols as usize) > legend.len() {
-            (cols as usize) - legend.len()
-        } else {
-            0
-        };
-        let fill = " ".repeat(fill_len);
 
         execute!(
             self.stdout,
             SetBackgroundColor(Color::Black),
             SetForegroundColor(Color::DarkYellow),
             Print(legend),
-            Print(&fill),
             ResetColor
         )?;
         Ok(())

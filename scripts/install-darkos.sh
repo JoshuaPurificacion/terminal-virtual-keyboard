@@ -40,6 +40,19 @@ chmod +x "$BIN_DIR/deck-launcher"
 ln -sf "$BIN_DIR/cyberdeck-kb" /usr/local/bin/cyberdeck-kb
 ln -sf "$BIN_DIR/deck-launcher" /usr/local/bin/deck-launcher
 
+# Grant input device permissions for non-root users (like 'ark')
+echo "Setting up input permissions for controller..."
+usermod -a -G input ark || true
+if [ -n "$SUDO_USER" ]; then
+    usermod -a -G input "$SUDO_USER" || true
+fi
+chmod 666 /dev/input/event* || true
+cat << 'UDEV' > /etc/udev/rules.d/99-gamepad-input.rules
+KERNEL=="event*", SUBSYSTEM=="input", MODE="0666"
+UDEV
+udevadm control --reload-rules || true
+udevadm trigger || true
+
 # Create EmulationStation Ports / Tools launcher shortcut if folders exist
 for dir in /roms/ports /roms/tools /roms2/ports /roms2/tools /storage/roms/ports /userdata/roms/ports; do
     if [ -d "$dir" ]; then
