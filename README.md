@@ -48,13 +48,31 @@ A PTY-native virtual keyboard for the RG353M cyberdeck, prototyped on Linux and 
 
 ## Building and Running
 
-Ensure Rust and C build tools are installed:
+### 1. Run in VM / PC Testing
 ```bash
-# Build the project
-cargo build --release
+# Run unit tests and simulation
+./scripts/test-vm-sim.sh
 
-# Run cyberdeck-kb
-cargo run
+# Run interactive cyberdeck-kb
+cargo run --release
+```
+
+### 2. DarkOS / ArkOS Cyberdeck Mode (RG353M)
+```
+EmulationStation (Default) ──[ SELECT + START ]──► Cyberdeck Terminal (cyberdeck-kb)
+                         ◄─────[ Ctrl + Q ]───────
+```
+Install on RG353M without touching `emulationstation.sh`:
+```bash
+# 1. Clone repository on RG353M
+git clone https://github.com/JoshuaPurificacion/terminal-virtual-keyboard.git
+cd terminal-virtual-keyboard
+
+# 2. Run DarkOS non-destructive installer
+sudo ./scripts/install-darkos.sh
+
+# 3. Enable background launcher service
+sudo systemctl enable --now deck-launcher
 ```
 
 ---
@@ -62,8 +80,11 @@ cargo run
 ## Architecture Overview
 
 - **`src/main.rs`**: Main event loop, PTY dispatch, terminal sizing, and frame orchestration.
+- **`src/bin/deck-launcher.rs`**: Background daemon watching `/dev/input/event4` (`retrogame_joypad`), suspending ES (`SIGSTOP`), launching cyberdeck-kb, and resuming ES (`SIGCONT`).
 - **`src/terminal.rs`**: `crossterm`-based rendering, ANSI screen rendering, and panic-safe `TerminalGuard`.
 - **`src/keyboard.rs`**: Grid definitions for Base, Numbers, and Symbols layers; modifier and cursor state machines.
-- **`src/input.rs`**: Input abstraction mapping physical events to gamepad-style `InputEvent`s.
+- **`src/input.rs`**: Native Linux `evdev` event listener & PC keyboard mapping.
 - **`src/pty.rs`**: `portable-pty` session manager with background asynchronous I/O and `vt100` virtual screen parser.
 - **`src/config.rs`**: Configuration schema and TOML loader for customizable keyboard layout and ratios.
+- **`scripts/install-darkos.sh`**: One-command systemd installer for DarkOS / ArkOS.
+- **`scripts/test-vm-sim.sh`**: End-to-end VM test harness for builds, unit tests, and lifecycle signals.

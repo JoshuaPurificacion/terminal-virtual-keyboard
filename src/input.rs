@@ -169,6 +169,78 @@ impl PcKeyboardInput {
     }
 }
 
+pub struct EvdevGamepadInput {
+    pub device: Option<evdev::Device>,
+}
+
+impl EvdevGamepadInput {
+    pub fn new(path: Option<&str>) -> Self {
+        let device = if let Some(p) = path {
+            evdev::Device::open(p).ok()
+        } else {
+            Self::find_gamepad()
+        };
+
+        Self { device }
+    }
+
+    pub fn find_gamepad() -> Option<evdev::Device> {
+        let entries = evdev::enumerate();
+        for (_, dev) in entries {
+            let name = dev.name().unwrap_or("").to_lowercase();
+            if name.contains("retrogame")
+                || name.contains("joypad")
+                || name.contains("gamepad")
+                || name.contains("rk_")
+                || name.contains("odroid")
+            {
+                return Some(dev);
+            }
+        }
+        None
+    }
+
+    pub fn poll_event(&mut self) -> Option<InputEvent> {
+        let dev = self.device.as_mut()?;
+        if let Ok(events) = dev.fetch_events() {
+            for ev in events {
+                if let evdev::InputEventKind::Key(key) = ev.kind() {
+                    // Only process key press (value == 1)
+                    if ev.value() == 1 {
+                        if let Some(mapped) = Self::map_evdev_key(key) {
+                            return Some(mapped);
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    pub fn map_evdev_key(key: evdev::Key) -> Option<InputEvent> {
+        match key {
+            evdev::Key::KEY_UP | evdev::Key::BTN_DPAD_UP => Some(InputEvent::Up),
+            evdev::Key::KEY_DOWN | evdev::Key::BTN_DPAD_DOWN => Some(InputEvent::Down),
+            evdev::Key::KEY_LEFT | evdev::Key::BTN_DPAD_LEFT => Some(InputEvent::Left),
+            evdev::Key::KEY_RIGHT | evdev::Key::BTN_DPAD_RIGHT => Some(InputEvent::Right),
+
+            evdev::Key::BTN_SOUTH | evdev::Key::BTN_0 | evdev::Key::KEY_ENTER => Some(InputEvent::Select),
+            evdev::Key::BTN_EAST | evdev::Key::BTN_1 | evdev::Key::KEY_BACKSPACE => Some(InputEvent::Back),
+            evdev::Key::BTN_NORTH | evdev::Key::BTN_2 | evdev::Key::KEY_F1 => Some(InputEvent::ShiftKey),
+            evdev::Key::BTN_WEST | evdev::Key::BTN_3 | evdev::Key::KEY_F2 => Some(InputEvent::CtrlKey),
+
+            evdev::Key::BTN_TL | evdev::Key::BTN_TL2 | evdev::Key::KEY_F3 | evdev::Key::KEY_PAGEUP => Some(InputEvent::L1),
+            evdev::Key::BTN_TR | evdev::Key::BTN_TR2 | evdev::Key::KEY_F4 | evdev::Key::KEY_PAGEDOWN => Some(InputEvent::R1),
+
+            evdev::Key::BTN_START | evdev::Key::KEY_TAB => Some(InputEvent::Start),
+            evdev::Key::BTN_SELECT | evdev::Key::KEY_ESC => Some(InputEvent::Select2),
+
+            evdev::Key::BTN_MODE | evdev::Key::KEY_HOMEPAGE | evdev::Key::KEY_F => Some(InputEvent::ToggleMode),
+            _ => None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -208,5 +280,19 @@ mod tests {
 
         // Quit
         assert_eq!(input.map_key(KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL)), Some(InputEvent::Quit));
+    }
+
+    #[test]
+    fn test_evdev_key_mapping() {
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_SOUTH), Some(InputEvent::Select));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_EAST), Some(InputEvent::Back));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_NORTH), Some(InputEvent::ShiftKey));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_WEST), Some(InputEvent::CtrlKey));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_TL), Some(InputEvent::L1));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_TR), Some(InputEvent::R1));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_START), Some(InputEvent::Start));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_SELECT), Some(InputEvent::Select2));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_MODE), Some(InputEvent::ToggleMode));
+        assert_eq!(EvdevGamepadInput::map_evdev_key(evdev::Key::BTN_DPAD_UP), Some(InputEvent::Up));
     }
 }

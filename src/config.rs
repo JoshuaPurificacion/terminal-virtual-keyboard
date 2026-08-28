@@ -5,6 +5,7 @@ use std::path::Path;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     pub shell: Option<String>,
+    pub gamepad_device: Option<String>,
     pub keyboard_height_ratio: f32,
     pub min_keyboard_height: u16,
     pub max_keyboard_height: u16,
@@ -16,6 +17,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             shell: None,
+            gamepad_device: None,
             keyboard_height_ratio: 0.45,
             min_keyboard_height: 9,
             max_keyboard_height: 14,
